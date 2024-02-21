@@ -7,7 +7,8 @@ import {
     handleConnectCommand,
     handleDisconnectCommand,
     handleSendTXCommand,
-    handleShowMyWalletCommand
+    handleShowMyWalletCommand,
+    handleCheckKFCoinCommand,
 } from './commands-handlers';
 import { initRedisClient } from './ton-connect/storage';
 import TelegramBot from 'node-telegram-bot-api';
@@ -19,7 +20,15 @@ async function main(): Promise<void> {
         ...walletMenuCallbacks
     };
 
+    bot.on('message', (_msg: TelegramBot.Message) => {
+        // console.log('on message: ', msg)
+        // const chatId = msg.chat.id;
+        // send a message to the chat acknowledging receipt of their message
+        // bot.sendMessage(chatId, 'Received your message');
+      });
+
     bot.on('callback_query', query => {
+        console.log('on callback_query: ', query)
         if (!query.data) {
             return;
         }
@@ -39,7 +48,10 @@ async function main(): Promise<void> {
         callbacks[request.method as keyof typeof callbacks](query, request.data);
     });
 
-    bot.onText(/\/connect/, handleConnectCommand);
+    bot.onText(/\/connect/, (msg: TelegramBot.Message) => { 
+        console.log('onText - connect: ', msg)
+        return handleConnectCommand(msg) 
+    });
 
     bot.onText(/\/send_tx/, handleSendTXCommand);
 
@@ -47,7 +59,10 @@ async function main(): Promise<void> {
 
     bot.onText(/\/my_wallet/, handleShowMyWalletCommand);
 
+    bot.onText(/\/check_kfc_coin/, handleCheckKFCoinCommand);
+
     bot.onText(/\/start/, (msg: TelegramBot.Message) => {
+        console.log('onText - start: ', msg)
         bot.sendMessage(
             msg.chat.id,
             `
@@ -58,8 +73,7 @@ Commands list:
 /my_wallet - Show connected wallet
 /send_tx - Send transaction
 /disconnect - Disconnect from the wallet
-
-GitHub: https://github.com/ton-connect/demo-telegram-bot
+/check_kfc_coin - Check KFC coin balance
 `
         );
     });

@@ -10,6 +10,7 @@ let newConnectRequestListenersMap = new Map<number, () => void>();
 
 export async function handleConnectCommand(msg: TelegramBot.Message): Promise<void> {
     const chatId = msg.chat.id;
+   
     let messageWasDeleted = false;
 
     newConnectRequestListenersMap.get(chatId)?.();
@@ -188,4 +189,20 @@ export async function handleShowMyWalletCommand(msg: TelegramBot.Message): Promi
             connector.wallet!.account.chain === CHAIN.TESTNET
         )}`
     );
+}
+
+export async function handleCheckKFCoinCommand(msg: TelegramBot.Message): Promise<void> {
+    const chatId = msg.chat.id;
+
+    const connector = getConnector(chatId);
+
+    await connector.restoreConnection();
+    if (!connector.connected) {
+        await bot.sendMessage(chatId, "You didn't connect a wallet");
+        return;
+    }
+
+    await bot.sendMessage(chatId, 'pending...');
+
+
 }
