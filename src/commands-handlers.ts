@@ -5,12 +5,19 @@ import QRCode from 'qrcode';
 import TelegramBot from 'node-telegram-bot-api';
 import { getConnector } from './ton-connect/connector';
 import { addTGReturnStrategy, buildUniversalKeyboard, pTimeout, pTimeoutException } from './utils';
+import { getApiClient, getApiFactory } from './ton-connect/client';
+import { JettonWallet, JettonMaster, Address, Contract, ContractProvider, WalletContractV4, WalletContractV3R2 } from '@ton/ton';
+// import { Address, Contract, ContractProvider } from "@ton/core";
+import { PoolType } from "@dedust/sdk";
+import { Asset, VaultNative, ReadinessStatus } from "@dedust/sdk";
+import Prando from 'prando';
+import { keyPairFromSeed } from '@ton/crypto';
 
 let newConnectRequestListenersMap = new Map<number, () => void>();
 
 export async function handleConnectCommand(msg: TelegramBot.Message): Promise<void> {
     const chatId = msg.chat.id;
-   
+
     let messageWasDeleted = false;
 
     newConnectRequestListenersMap.get(chatId)?.();
@@ -202,7 +209,53 @@ export async function handleCheckKFCoinCommand(msg: TelegramBot.Message): Promis
         return;
     }
 
-    await bot.sendMessage(chatId, 'pending...');
+    const client = getApiClient();
+    let master = client.open(JettonMaster.create(Address.parse('EQANGI47B_rNmh2-H7GKlGfCF9hmf_vhf8iuPz62sQyVSanQ')));
+    let walletAddress = await master.getWalletAddress(Address.parse('UQATezLBCtZQ5ToF-fak7wXqUu8RvVX0Ng-oE7hnTZ2uGkwN'));
+    let jettonData = await master.getJettonData();
 
+    let wallet = client.open(JettonWallet.create(walletAddress))
+    let balance = await wallet.getBalance();
+    console.log('jettonData = ', jettonData, balance)
+
+
+    // const currentAddr = Address.parse('UQCHfNSbIXJsBmMlPjRnke6dEH5Nvww3hdKBSA7zhhu7QIAT')
+    // console.log('currentAddr - ', currentAddr.workChain, currentAddr.toRawString())
+    // const publicKeyBuffer = Buffer.from(currentAddr.toString(), 'hex');
+
+    // let contract = client.open(WalletContractV4.create({ workchain: 0, publicKey: publicKeyBuffer }));
+
+    // let balance_native = await contract.getBalance();
+    // console.log('balance_native - ', contract.address, balance_native)
+
+    function randomTestKey(seed: string) {
+        let random = new Prando(seed);
+        let res = Buffer.alloc(32);
+        for (let i = 0; i < res.length; i++) {
+            res[i] = random.nextInt(0, 256);
+        }
+        return keyPairFromSeed(res);
+    }
+
+    const publicKeyBuffer = Buffer.from('UQCHfNSbIXJsBmMlPjRnke6dEH5Nvww3hdKBSA7zhhu7QIAT', 'hex');
+    // let key = randomTestKey('v4-treasure');
+    // const publicKeyBuffer = key.publicKey;
+    console.log('publicKeyBuffer - ', publicKeyBuffer.toString('hex'))
+    
+    let contract = client.open(WalletContractV3R2.create({ workchain: 0, publicKey: publicKeyBuffer }));
+    let seqno = await contract.getSeqno();
+    let accountAddress = Address.parse('UQCHfNSbIXJsBmMlPjRnke6dEH5Nvww3hdKBSA7zhhu7QIAT')
+    console.log('seqno - ', {seqno, accountAddress})
+
+    let accountData = await client.getAccount(seqno, accountAddress)
+    console.log('accountData - ', accountData)
+    
+    // let accBalance = (await contract.getAccount(seqno, accountAddress)).account.balance
+    // let balance_native = await contract.getBalance();
+    // console.log('balance_native - ', contract.address, balance_native);
+
+    
+
+    await bot.sendMessage(chatId, 'handleCheckKFCoinCommand 2');
 
 }

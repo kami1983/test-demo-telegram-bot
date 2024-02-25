@@ -12,6 +12,7 @@ import {
 } from './commands-handlers';
 import { initRedisClient } from './ton-connect/storage';
 import TelegramBot from 'node-telegram-bot-api';
+import { CommandFilter } from './filters/CommandFilter';
 
 async function main(): Promise<void> {
     await initRedisClient();
@@ -41,6 +42,8 @@ async function main(): Promise<void> {
             return;
         }
 
+        console.log('request - ', request)
+
         if (!callbacks[request.method as keyof typeof callbacks]) {
             return;
         }
@@ -52,6 +55,8 @@ async function main(): Promise<void> {
         console.log('onText - connect: ', msg)
         return handleConnectCommand(msg) 
     });
+
+    bot.onText(/\/.*/, CommandFilter);
 
     bot.onText(/\/send_tx/, handleSendTXCommand);
 
